@@ -1,0 +1,47 @@
+client:
+  name: basic
+  file-system: device-agnostic
+tools: {}
+targets:
+  "PackageStructure": ["<PackageStructure>"]
+  "cpu_mem_tool-arm64-apple-macosx-debug.module": ["<cpu_mem_tool-arm64-apple-macosx-debug.module>"]
+  "main": ["<cpu_mem_tool-arm64-apple-macosx-debug.module>"]
+  "test": ["<cpu_mem_tool-arm64-apple-macosx-debug.module>"]
+default: "main"
+nodes:
+  "/Users/szm/vibe coding/cpu_mem_tool/Sources/cpu_mem_tool/":
+    is-directory-structure: true
+    content-exclusion-patterns: [".git",".build"]
+commands:
+  "/Users/szm/vibe coding/cpu_mem_tool/.build/index-build/arm64-apple-macosx/debug/cpu_mem_tool.build/sources":
+    tool: write-auxiliary-file
+    inputs: ["<sources-file-list>","/Users/szm/vibe coding/cpu_mem_tool/Sources/cpu_mem_tool/App/AppDelegate.swift","/Users/szm/vibe coding/cpu_mem_tool/Sources/cpu_mem_tool/App/cpu_mem_toolApp.swift","/Users/szm/vibe coding/cpu_mem_tool/Sources/cpu_mem_tool/MenuBar/MenuBarView.swift","/Users/szm/vibe coding/cpu_mem_tool/Sources/cpu_mem_tool/Models/SystemStats.swift","/Users/szm/vibe coding/cpu_mem_tool/Sources/cpu_mem_tool/Services/GPUMonitor.swift","/Users/szm/vibe coding/cpu_mem_tool/Sources/cpu_mem_tool/Services/SMCMonitor.swift","/Users/szm/vibe coding/cpu_mem_tool/Sources/cpu_mem_tool/Services/SystemMonitorService.swift","/Users/szm/vibe coding/cpu_mem_tool/Sources/cpu_mem_tool/Window/ContentView.swift"]
+    outputs: ["/Users/szm/vibe coding/cpu_mem_tool/.build/index-build/arm64-apple-macosx/debug/cpu_mem_tool.build/sources"]
+    description: "Write auxiliary file /Users/szm/vibe coding/cpu_mem_tool/.build/index-build/arm64-apple-macosx/debug/cpu_mem_tool.build/sources"
+
+  "/Users/szm/vibe coding/cpu_mem_tool/.build/index-build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt":
+    tool: write-auxiliary-file
+    inputs: ["<swift-get-version>","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"]
+    outputs: ["/Users/szm/vibe coding/cpu_mem_tool/.build/index-build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"]
+    always-out-of-date: "true"
+    description: "Write auxiliary file /Users/szm/vibe coding/cpu_mem_tool/.build/index-build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+
+  "<cpu_mem_tool-arm64-apple-macosx-debug.module>":
+    tool: phony
+    inputs: ["/Users/szm/vibe coding/cpu_mem_tool/.build/index-build/arm64-apple-macosx/debug/Modules/cpu_mem_tool.swiftmodule"]
+    outputs: ["<cpu_mem_tool-arm64-apple-macosx-debug.module>"]
+
+  "C.cpu_mem_tool-arm64-apple-macosx-debug.module":
+    tool: shell
+    inputs: ["/Users/szm/vibe coding/cpu_mem_tool/Sources/cpu_mem_tool/App/AppDelegate.swift","/Users/szm/vibe coding/cpu_mem_tool/Sources/cpu_mem_tool/App/cpu_mem_toolApp.swift","/Users/szm/vibe coding/cpu_mem_tool/Sources/cpu_mem_tool/MenuBar/MenuBarView.swift","/Users/szm/vibe coding/cpu_mem_tool/Sources/cpu_mem_tool/Models/SystemStats.swift","/Users/szm/vibe coding/cpu_mem_tool/Sources/cpu_mem_tool/Services/GPUMonitor.swift","/Users/szm/vibe coding/cpu_mem_tool/Sources/cpu_mem_tool/Services/SMCMonitor.swift","/Users/szm/vibe coding/cpu_mem_tool/Sources/cpu_mem_tool/Services/SystemMonitorService.swift","/Users/szm/vibe coding/cpu_mem_tool/Sources/cpu_mem_tool/Window/ContentView.swift","/Users/szm/vibe coding/cpu_mem_tool/.build/index-build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt","/Users/szm/vibe coding/cpu_mem_tool/.build/index-build/arm64-apple-macosx/debug/cpu_mem_tool.build/sources"]
+    outputs: ["/Users/szm/vibe coding/cpu_mem_tool/.build/index-build/arm64-apple-macosx/debug/Modules/cpu_mem_tool.swiftmodule"]
+    description: "Compiling Swift Module 'cpu_mem_tool' (8 sources)"
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-module-name","cpu_mem_tool","-emit-dependencies","-emit-module","-emit-module-path","/Users/szm/vibe coding/cpu_mem_tool/.build/index-build/arm64-apple-macosx/debug/Modules/cpu_mem_tool.swiftmodule","-output-file-map","/Users/szm/vibe coding/cpu_mem_tool/.build/index-build/arm64-apple-macosx/debug/cpu_mem_tool.build/output-file-map.json","-incremental","@/Users/szm/vibe coding/cpu_mem_tool/.build/index-build/arm64-apple-macosx/debug/cpu_mem_tool.build/sources","-I","/Users/szm/vibe coding/cpu_mem_tool/.build/index-build/arm64-apple-macosx/debug/Modules","-target","arm64-apple-macosx26.0","-incremental","-enable-batch-mode","-serialize-diagnostics","-index-store-path","/Users/szm/vibe coding/cpu_mem_tool/.build/index-build/arm64-apple-macosx/debug/index/store","-Onone","-enable-testing","-j14","-DSWIFT_PACKAGE","-DDEBUG","-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE","-module-cache-path","/Users/szm/vibe coding/cpu_mem_tool/.build/index-build/arm64-apple-macosx/debug/ModuleCache","-parseable-output","-swift-version","6","-Xfrontend","-experimental-lazy-typecheck","-Xfrontend","-experimental-skip-all-function-bodies","-Xfrontend","-experimental-allow-module-with-compiler-errors","-Xfrontend","-empty-abi-descriptor","-plugin-path","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g","-Xcc","-isysroot","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk","-Xcc","-F","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-Xcc","-fPIC","-Xcc","-g","-package-name","cpu_mem_tool"]
+
+  "PackageStructure":
+    tool: package-structure-tool
+    inputs: ["/Users/szm/vibe coding/cpu_mem_tool/Sources/cpu_mem_tool/","/Users/szm/vibe coding/cpu_mem_tool/Package.swift","/Users/szm/vibe coding/cpu_mem_tool/Package.resolved"]
+    outputs: ["<PackageStructure>"]
+    description: "Planning build"
+    allow-missing-inputs: true
+

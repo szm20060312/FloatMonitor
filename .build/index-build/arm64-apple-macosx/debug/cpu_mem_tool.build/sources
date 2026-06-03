@@ -1,0 +1,8 @@
+'/Users/szm/vibe coding/cpu_mem_tool/Sources/cpu_mem_tool/App/AppDelegate.swift'
+'/Users/szm/vibe coding/cpu_mem_tool/Sources/cpu_mem_tool/App/cpu_mem_toolApp.swift'
+'/Users/szm/vibe coding/cpu_mem_tool/Sources/cpu_mem_tool/MenuBar/MenuBarView.swift'
+'/Users/szm/vibe coding/cpu_mem_tool/Sources/cpu_mem_tool/Models/SystemStats.swift'
+'/Users/szm/vibe coding/cpu_mem_tool/Sources/cpu_mem_tool/Services/GPUMonitor.swift'
+'/Users/szm/vibe coding/cpu_mem_tool/Sources/cpu_mem_tool/Services/SMCMonitor.swift'
+'/Users/szm/vibe coding/cpu_mem_tool/Sources/cpu_mem_tool/Services/SystemMonitorService.swift'
+'/Users/szm/vibe coding/cpu_mem_tool/Sources/cpu_mem_tool/Window/ContentView.swift'

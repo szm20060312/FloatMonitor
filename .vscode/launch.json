@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:cpu_mem_tool}",
+            "name": "Debug cpu_mem_tool",
+            "target": "cpu_mem_tool",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug cpu_mem_tool"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:cpu_mem_tool}",
+            "name": "Release cpu_mem_tool",
+            "target": "cpu_mem_tool",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release cpu_mem_tool"
+        }
+    ]
+}
