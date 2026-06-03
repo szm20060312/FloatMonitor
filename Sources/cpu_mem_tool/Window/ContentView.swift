@@ -1,7 +1,7 @@
 import SwiftUI
 import Charts
 
-// MARK: - 桌面窗口主视图
+// MARK: - 桌面窗口
 
 struct ContentView: View {
     @EnvironmentObject var monitorService: SystemMonitorService
@@ -9,385 +9,314 @@ struct ContentView: View {
     @State private var floatOnTop = false
 
     enum Tab: String, CaseIterable {
-        case overview = "概览"
-        case cpu = "CPU"
-        case memory = "内存"
-        case network = "网络"
-
+        case overview = "概览", cpu = "CPU", memory = "内存", network = "网络"
         var icon: String {
             switch self {
-            case .overview: return "square.grid.2x2"
-            case .cpu: return "cpu"
-            case .memory: return "memorychip"
-            case .network: return "network"
+            case .overview: "square.grid.2x2"
+            case .cpu: "cpu"
+            case .memory: "memorychip"
+            case .network: "network"
             }
         }
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            // 顶部 Tab 栏 + 控制按钮
             headerBar
-
-            Divider().opacity(0.3)
-
-            // 内容区
+            separator
             tabContent
         }
-        .frame(minWidth: 420, idealWidth: 480, minHeight: 400, idealHeight: 520)
-        .background(
-            RoundedRectangle(cornerRadius: 0)
-                .fill(.ultraThinMaterial)
-        )
-        .background(
-            RoundedRectangle(cornerRadius: 0)
-                .fill(.white.opacity(0.03))
-        )
-        .onChange(of: floatOnTop) { _, newValue in
-            setWindowLevel(newValue ? .floating : .normal)
+        .frame(minWidth: 440, idealWidth: 500, minHeight: 420, idealHeight: 560)
+        .background(.regularMaterial)
+        .onChange(of: floatOnTop) { _, new in
+            for w in NSApp.windows {
+                if !w.isKind(of: NSClassFromString("NSStatusBarWindow") ?? NSWindow.self) {
+                    w.level = new ? .floating : .normal
+                }
+            }
         }
     }
 
-    // MARK: - 顶部栏
+    // MARK: Top Bar
 
     private var headerBar: some View {
-        HStack(spacing: 0) {
-            // Tab 按钮
+        HStack(spacing: 4) {
             ForEach(Tab.allCases, id: \.self) { tab in
-                tabButton(tab)
+                let sel = selectedTab == tab
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) { selectedTab = tab }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: tab.icon)
+                        Text(tab.rawValue)
+                    }
+                    .font(.caption.weight(sel ? .semibold : .regular))
+                    .padding(.horizontal, 10).padding(.vertical, 7)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(sel ? .primary : .secondary)
+                .background(sel ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear), in: Capsule())
             }
             Spacer()
-
-            // 窗口置顶按钮
-            Button {
-                floatOnTop.toggle()
-            } label: {
-                Image(systemName: floatOnTop ? "pin.fill" : "pin")
-                    .font(.caption)
+            Button { floatOnTop.toggle() } label: {
+                Image(systemName: floatOnTop ? "pin.fill" : "pin").font(.caption)
             }
             .buttonStyle(.plain)
             .foregroundStyle(floatOnTop ? .blue : .secondary)
             .help(floatOnTop ? "取消置顶" : "窗口置顶")
-            .padding(.horizontal, 6)
+            .padding(.trailing, 8)
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, 10).padding(.vertical, 6)
     }
 
-    private func tabButton(_ tab: Tab) -> some View {
-        Button {
-            selectedTab = tab
-        } label: {
-            Label(tab.rawValue, systemImage: tab.icon)
-                .font(.subheadline.weight(selectedTab == tab ? .semibold : .regular))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-        }
-        .buttonStyle(.plain)
-        .foregroundStyle(selectedTab == tab ? .primary : .secondary)
-        .background(
-            selectedTab == tab
-                ? Capsule().fill(.white.opacity(0.1))
-                : Capsule().fill(.clear)
-        )
+    private var separator: some View {
+        Rectangle().fill(.quaternary).frame(height: 0.5)
     }
-
-    // MARK: - 内容区
 
     @ViewBuilder
     private var tabContent: some View {
         switch selectedTab {
-        case .overview:
-            OverviewTab()
-        case .cpu:
-            CPUTab()
-        case .memory:
-            MemoryTab()
-        case .network:
-            NetworkTab()
+        case .overview: OverviewTab()
+        case .cpu:      CPUTab()
+        case .memory:   MemoryTab()
+        case .network:  NetworkTab()
         }
     }
+}
 
-    // MARK: - 窗口层级控制
+// MARK: - Shared Helpers
 
-    private func setWindowLevel(_ level: NSWindow.Level) {
-        guard let window = NSApp.windows.first(where: {
-            $0.contentView?.subviews.contains(where: { $0 is NSHostingView<AnyView> }) == false
-        }) ?? NSApp.keyWindow else { return }
-        window.level = level
+private func gaugeBar(_ value: Double, color: Color) -> some View {
+    GeometryReader { g in
+        ZStack(alignment: .leading) {
+            Capsule().fill(.quaternary).frame(height: 5)
+            Capsule()
+                .fill(value > 80 ? .red : value > 60 ? .orange : color)
+                .frame(width: max(5, g.size.width * min(value, 100) / 100), height: 5)
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: value)
+        }
     }
+    .frame(height: 5)
+}
+
+private func cardBg<C: View>(@ViewBuilder _ content: () -> C) -> some View {
+    content()
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 12).fill(.quaternary.opacity(0.4)))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.05), lineWidth: 0.5))
+}
+
+private func coreColor(_ u: Double) -> Color {
+    u > 80 ? .red : u > 60 ? .orange : .blue
+}
+
+private func fmtBytes(_ b: UInt64) -> String {
+    String(format: "%.1f GB", Double(b) / 1_073_741_824)
+}
+
+private func fmtRate(_ b: UInt64) -> String {
+    if b >= 1_000_000 { return String(format: "%.1f MB/s", Double(b) / 1_000_000) }
+    if b >= 1_000 { return String(format: "%.0f KB/s", Double(b) / 1_000) }
+    return "\(b) B/s"
 }
 
 // MARK: - 概览 Tab
 
 private struct OverviewTab: View {
-    @EnvironmentObject var monitorService: SystemMonitorService
+    @EnvironmentObject var s: SystemMonitorService
 
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                // CPU 卡片
-                metricCard(
-                    title: "CPU", icon: "cpu", color: .blue,
-                    value: monitorService.stats.cpuUsage
-                ) {
-                    gaugeBar(value: monitorService.stats.cpuUsage, color: .blue)
-                    if !monitorService.stats.cpuPerCore.isEmpty {
-                        miniCoreBars(cores: monitorService.stats.cpuPerCore)
-                    }
-                }
-
-                // 内存卡片
-                let memPercent = monitorService.stats.memoryTotal > 0
-                    ? Double(monitorService.stats.memoryUsed) / Double(monitorService.stats.memoryTotal) * 100 : 0
-                metricCard(
-                    title: "内存", icon: "memorychip", color: memColor,
-                    value: memPercent
-                ) {
-                    gaugeBar(value: memPercent, color: memColor)
-                    HStack {
-                        Circle().fill(memColor).frame(width: 6, height: 6)
-                        Text(monitorService.stats.memoryPressure.label)
-                            .font(.caption)
-                        Spacer()
-                        Text(OverviewTab.formatBytes(monitorService.stats.memoryUsed))
-                            .font(.caption)
-                        Text(" / ").font(.caption).foregroundStyle(.tertiary)
-                        Text(OverviewTab.formatBytes(monitorService.stats.memoryTotal))
-                            .font(.caption)
-                    }
-                    .foregroundStyle(.secondary)
-                }
-
-                // GPU 卡片
-                if let gpu = monitorService.stats.gpuUsage {
-                    metricCard(
-                        title: "GPU", icon: "display", color: .pink,
-                        value: gpu
-                    ) {
-                        gaugeBar(value: gpu, color: .pink)
-                    }
-                }
-
-                // 网络卡片
-                metricCard(
-                    title: "网络", icon: "network", color: .purple,
-                    value: nil
-                ) {
-                    HStack {
-                        networkMini(label: "↓ 下载", rate: monitorService.stats.networkDownload, color: .blue)
-                        Spacer()
-                        networkMini(label: "↑ 上传", rate: monitorService.stats.networkUpload, color: .purple)
-                    }
-                }
-
-                // 刷新间隔
-                HStack {
-                    Text("刷新间隔").font(.caption).foregroundStyle(.secondary)
-                    Picker("", selection: $monitorService.refreshInterval) {
-                        ForEach(SystemMonitorService.availableIntervals, id: \.self) { i in
-                            Text(OverviewTab.formatInterval(i)).tag(i)
-                        }
-                    }
-                    .pickerStyle(.segmented).controlSize(.small)
-                    .frame(maxWidth: 200)
-                    Spacer()
-                }
-            }
-            .padding(20)
-        }
+    private var memPct: Double {
+        s.stats.memoryTotal > 0 ? Double(s.stats.memoryUsed) / Double(s.stats.memoryTotal) * 100 : 0
     }
-
     private var memColor: Color {
-        switch monitorService.stats.memoryPressure {
-        case .normal: .green; case .warning: .orange; case .critical: .red
-        }
+        switch s.stats.memoryPressure { case .normal: .green; case .warning: .orange; case .critical: .red }
     }
-
-    // MARK: 卡片组件
-
-    private func metricCard<Content: View>(
-        title: String, icon: String, color: Color, value: Double?,
-        @ViewBuilder detail: () -> Content
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Label(title, systemImage: icon)
-                    .font(.headline)
-                Spacer()
-                if let v = value {
-                    Text(String(format: "%.0f%%", v))
-                        .font(.largeTitle.weight(.semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(
-                            v > 80 ? .red : v > 60 ? .orange : color
-                        )
-                }
-            }
-            detail()
-        }
-        .padding(16)
-        .background(RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.04)))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(.white.opacity(0.08), lineWidth: 0.5)
-        )
-    }
-
-    // MARK: 子组件
-
-    private func miniCoreBars(cores: [Double]) -> some View {
-        HStack(spacing: 2) {
-            ForEach(Array(cores.enumerated()), id: \.offset) { _, usage in
-                RoundedRectangle(cornerRadius: 1)
-                    .fill(usage > 80 ? .red : usage > 60 ? .orange : .blue)
-                    .frame(height: max(2, 18 * min(usage, 100) / 100))
-                    .frame(maxWidth: .infinity)
-            }
-        }
-        .frame(height: 20)
-    }
-
-    private func networkMini(label: String, rate: UInt64, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label).font(.caption2).foregroundStyle(.secondary)
-            Text(Self.formatBytesPerSec(rate))
-                .font(.subheadline.weight(.medium).monospaced())
-                .foregroundStyle(color)
-        }
-    }
-
-    static func formatInterval(_ i: TimeInterval) -> String {
-        i >= 1 ? "\(Int(i))秒" : String(format: "%.1f秒", i)
-    }
-
-    static func formatBytes(_ b: UInt64) -> String {
-        String(format: "%.1f GB", Double(b) / (1024*1024*1024))
-    }
-
-    static func formatBytesPerSec(_ b: UInt64) -> String {
-        if b >= 1_000_000 { return String(format: "%.1f MB/s", Double(b)/1_000_000) }
-        if b >= 1_000 { return String(format: "%.0f KB/s", Double(b)/1_000) }
-        return "\(b) B/s"
-    }
-}
-
-// MARK: - CPU 详情 Tab
-
-private struct CPUTab: View {
-    @EnvironmentObject var monitorService: SystemMonitorService
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                // 总使用率
-                VStack(spacing: 12) {
-                    Text("总使用率")
-                        .font(.headline)
-                    Text(String(format: "%.1f%%", monitorService.stats.cpuUsage))
-                        .font(.system(size: 48, weight: .thin, design: .rounded))
-                    gaugeBar(value: monitorService.stats.cpuUsage, color: .blue)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(20)
-                .background(RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.04)))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.08), lineWidth: 0.5))
-
-                // 每核心
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("每核心负载").font(.headline)
-                    ForEach(Array(monitorService.stats.cpuPerCore.enumerated()), id: \.offset) { i, usage in
-                        HStack(spacing: 10) {
-                            Text("核 \(i)")
-                                .font(.caption.monospaced())
-                                .foregroundStyle(.secondary)
-                                .frame(width: 28, alignment: .leading)
-                            gaugeBar(value: usage, color: coreColor(usage))
-                            Text(String(format: "%2.0f%%", usage))
-                                .font(.caption.monospacedDigit())
-                                .foregroundStyle(coreColor(usage))
-                                .frame(width: 32, alignment: .trailing)
+            VStack(spacing: 14) {
+                HStack(spacing: 14) {
+                    metricCard("CPU", icon: "cpu", color: .blue, value: s.stats.cpuUsage) {
+                        gaugeBar(s.stats.cpuUsage, color: .blue)
+                        miniCores(s.stats.cpuPerCore)
+                    }
+                    metricCard("内存", icon: "memorychip", color: memColor, value: memPct) {
+                        gaugeBar(memPct, color: memColor)
+                        HStack {
+                            Circle().fill(memColor).frame(width: 5, height: 5)
+                            Text(s.stats.memoryPressure.label).font(.caption2).foregroundStyle(memColor)
+                            Spacer()
+                            Text(fmtBytes(s.stats.memoryUsed)).font(.caption2).foregroundStyle(.secondary)
+                            Text(" / ").font(.caption2).foregroundStyle(.quaternary)
+                            Text(fmtBytes(s.stats.memoryTotal)).font(.caption2).foregroundStyle(.secondary)
                         }
                     }
                 }
-                .padding(20)
-                .background(RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.04)))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.08), lineWidth: 0.5))
-            }
-            .padding(20)
-        }
-    }
-
-    private func coreColor(_ usage: Double) -> Color {
-        usage > 80 ? .red : usage > 60 ? .orange : .blue
-    }
-}
-
-// MARK: - 内存详情 Tab
-
-private struct MemoryTab: View {
-    @EnvironmentObject var monitorService: SystemMonitorService
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                let memPercent = monitorService.stats.memoryTotal > 0
-                    ? Double(monitorService.stats.memoryUsed) / Double(monitorService.stats.memoryTotal) * 100 : 0
-
-                // 总览
-                VStack(spacing: 12) {
-                    Text("内存使用")
-                        .font(.headline)
-                    Text(String(format: "%.1f%%", memPercent))
-                        .font(.system(size: 48, weight: .thin, design: .rounded))
-                    gaugeBar(value: memPercent, color: memColor)
-
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text("已使用").font(.caption).foregroundStyle(.secondary)
-                            Text(OverviewTab.formatBytes(monitorService.stats.memoryUsed))
-                                .font(.title3.weight(.semibold))
-                        }
-                        Spacer()
-                        VStack(alignment: .trailing) {
-                            Text("总容量").font(.caption).foregroundStyle(.secondary)
-                            Text(OverviewTab.formatBytes(monitorService.stats.memoryTotal))
-                                .font(.title3.weight(.semibold))
+                HStack(spacing: 14) {
+                    if let g = s.stats.gpuUsage {
+                        metricCard("GPU", icon: "display", color: .pink, value: g) {
+                            gaugeBar(g, color: .pink)
                         }
                     }
-                    .padding(.top, 4)
-                }
-                .padding(20)
-                .background(RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.04)))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.08), lineWidth: 0.5))
-
-                // 内存压力
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("内存压力").font(.headline)
-                    HStack(spacing: 16) {
-                        ForEach(MemoryPressure.allCases, id: \.self) { level in
-                            VStack(spacing: 4) {
-                                Circle()
-                                    .fill(level == monitorService.stats.memoryPressure ? pressureColor(level) : .clear)
-                                    .frame(width: 16, height: 16)
-                                    .overlay(Circle().stroke(.white.opacity(0.2), lineWidth: 1))
-                                Text(level.label)
-                                    .font(.caption)
-                                    .foregroundStyle(level == monitorService.stats.memoryPressure ? .primary : .secondary)
+                    metricCard("网络", icon: "network", color: .purple, value: nil) {
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text("↓ 下载").font(.caption2).foregroundStyle(.secondary)
+                                Text(fmtRate(s.stats.networkDownload))
+                                    .font(.caption.weight(.medium).monospaced()).foregroundStyle(.blue)
+                            }
+                            Spacer()
+                            VStack(alignment: .trailing) {
+                                Text("↑ 上传").font(.caption2).foregroundStyle(.secondary)
+                                Text(fmtRate(s.stats.networkUpload))
+                                    .font(.caption.weight(.medium).monospaced()).foregroundStyle(.purple)
                             }
                         }
                     }
                 }
-                .padding(20)
-                .background(RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.04)))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.08), lineWidth: 0.5))
+                refreshRow
             }
-            .padding(20)
+            .padding(16)
         }
     }
 
+    private var refreshRow: some View {
+        HStack {
+            Text("刷新间隔").font(.caption).foregroundStyle(.secondary)
+            Picker("", selection: $s.refreshInterval) {
+                ForEach(SystemMonitorService.availableIntervals, id: \.self) { i in
+                    Text(i >= 1 ? "\(Int(i))秒" : "0.5秒").tag(i)
+                }
+            }
+            .pickerStyle(.segmented).controlSize(.small).frame(maxWidth: 220)
+            Spacer()
+        }
+    }
+
+    private func miniCores(_ cores: [Double]) -> some View {
+        HStack(spacing: 2) {
+            ForEach(Array(cores.enumerated()), id: \.offset) { _, u in
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(coreColor(u))
+                    .frame(height: max(2, 16 * min(u, 100) / 100))
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .frame(height: 18)
+    }
+
+    private func metricCard<V: View>(_ title: String, icon: String, color: Color, value: Double?, @ViewBuilder sub: () -> V) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: icon).font(.caption.weight(.semibold)).foregroundStyle(color)
+                Text(title).font(.caption).foregroundStyle(.primary)
+                Spacer()
+                if let v = value {
+                    Text(String(format: "%.0f%%", v))
+                        .font(.title3.weight(.bold).monospacedDigit())
+                        .foregroundStyle(v > 80 ? .red : v > 60 ? .orange : .primary)
+                        .contentTransition(.numericText(value: v))
+                }
+            }
+            sub()
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity)
+        .background(RoundedRectangle(cornerRadius: 12).fill(.quaternary.opacity(0.4)))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.05), lineWidth: 0.5))
+    }
+}
+
+// MARK: - CPU Tab
+
+private struct CPUTab: View {
+    @EnvironmentObject var s: SystemMonitorService
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 14) {
+                cardBg {
+                    VStack(spacing: 10) {
+                        HStack { Image(systemName: "cpu").foregroundStyle(.blue); Text("总使用率").font(.caption) }
+                        Text(String(format: "%.1f%%", s.stats.cpuUsage))
+                            .font(.system(size: 48, weight: .thin, design: .rounded))
+                            .contentTransition(.numericText(value: s.stats.cpuUsage))
+                        gaugeBar(s.stats.cpuUsage, color: .blue)
+                    }
+                }
+                cardBg {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack { Image(systemName: "cpu").foregroundStyle(.blue); Text("每核心负载").font(.caption) }
+                        ForEach(Array(s.stats.cpuPerCore.enumerated()), id: \.offset) { i, u in
+                            HStack(spacing: 8) {
+                                Text(String(format: "%2d", i)).font(.caption2.monospaced()).foregroundStyle(.secondary).frame(width: 16)
+                                gaugeBar(u, color: coreColor(u))
+                                Text(String(format: "%3.0f%%", u)).font(.caption2.monospacedDigit()).foregroundStyle(coreColor(u)).frame(width: 30, alignment: .trailing)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(16)
+        }
+    }
+}
+
+// MARK: - 内存 Tab
+
+private struct MemoryTab: View {
+    @EnvironmentObject var s: SystemMonitorService
+
+    private var memPct: Double {
+        s.stats.memoryTotal > 0 ? Double(s.stats.memoryUsed) / Double(s.stats.memoryTotal) * 100 : 0
+    }
     private var memColor: Color {
-        switch monitorService.stats.memoryPressure {
-        case .normal: .green; case .warning: .orange; case .critical: .red
+        switch s.stats.memoryPressure { case .normal: .green; case .warning: .orange; case .critical: .red }
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 14) {
+                cardBg {
+                    VStack(spacing: 10) {
+                        HStack { Image(systemName: "memorychip").foregroundStyle(memColor); Text("内存使用").font(.caption) }
+                        Text(String(format: "%.1f%%", memPct))
+                            .font(.system(size: 48, weight: .thin, design: .rounded))
+                            .contentTransition(.numericText(value: memPct))
+                        gaugeBar(memPct, color: memColor)
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text("已使用").font(.caption2).foregroundStyle(.secondary)
+                                Text(fmtBytes(s.stats.memoryUsed)).font(.body.weight(.semibold))
+                            }
+                            Spacer()
+                            VStack(alignment: .trailing) {
+                                Text("总容量").font(.caption2).foregroundStyle(.secondary)
+                                Text(fmtBytes(s.stats.memoryTotal)).font(.body.weight(.semibold))
+                            }
+                        }
+                    }
+                }
+                cardBg {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack { Image(systemName: "gauge.with.dots.needle.33percent").foregroundStyle(.orange); Text("内存压力").font(.caption) }
+                        HStack(spacing: 20) {
+                            ForEach(MemoryPressure.allCases, id: \.self) { lv in
+                                VStack(spacing: 4) {
+                                    Circle()
+                                        .fill(s.stats.memoryPressure == lv ? pressureColor(lv) : .clear)
+                                        .frame(width: 14, height: 14)
+                                        .overlay(Circle().stroke(.white.opacity(0.2), lineWidth: 1))
+                                    Text(lv.label).font(.caption2)
+                                        .foregroundStyle(s.stats.memoryPressure == lv ? .primary : .secondary)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(16)
         }
     }
 
@@ -396,168 +325,92 @@ private struct MemoryTab: View {
     }
 }
 
-// MARK: - 网络详情 Tab
+// MARK: - 网络 Tab
 
 private struct NetworkTab: View {
-    @EnvironmentObject var monitorService: SystemMonitorService
-    @StateObject private var history = NetworkHistoryManager.shared
+    @EnvironmentObject var s: SystemMonitorService
+    @StateObject private var h = NetworkHistoryManager.shared
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                // 实时速率卡片
-                HStack(spacing: 16) {
-                    rateCard(label: "下载", icon: "arrow.down.circle.fill",
-                             rate: monitorService.stats.networkDownload, color: .blue)
-                    rateCard(label: "上传", icon: "arrow.up.circle.fill",
-                             rate: monitorService.stats.networkUpload, color: .purple)
+            VStack(spacing: 14) {
+                HStack(spacing: 14) {
+                    rateCard("↓ 下载", rate: s.stats.networkDownload, color: .blue)
+                    rateCard("↑ 上传", rate: s.stats.networkUpload, color: .purple)
                 }
-
-                // 折线图: 下载速率历史
-                chartCard(
-                    title: "下载速率 (近 2 分钟)", color: .blue,
-                    points: history.recentPoints, keyPath: \.download
-                )
-
-                // 折线图: 上传速率历史
-                chartCard(
-                    title: "上传速率 (近 2 分钟)", color: .purple,
-                    points: history.recentPoints, keyPath: \.upload
-                )
-
-                // 今日累计统计
-                dailyStatsCard
+                chartCard("下载速率", color: .blue, points: h.recentPoints, kp: \.download)
+                chartCard("上传速率", color: .purple, points: h.recentPoints, kp: \.upload)
+                dailyCard
             }
-            .padding(20)
+            .padding(16)
         }
     }
 
-    // MARK: 实时速率小卡片
-
-    private func rateCard(label: String, icon: String, rate: UInt64, color: Color) -> some View {
-        VStack(spacing: 6) {
-            Label(label, systemImage: icon)
-                .font(.subheadline)
-                .foregroundStyle(color)
-            Text(OverviewTab.formatBytesPerSec(rate))
+    private func rateCard(_ label: String, rate: UInt64, color: Color) -> some View {
+        VStack(spacing: 4) {
+            Text(label).font(.caption2).foregroundStyle(.secondary)
+            Text(fmtRate(rate))
                 .font(.title2.weight(.semibold).monospaced())
                 .foregroundStyle(color)
+                .contentTransition(.numericText(value: Double(rate)))
         }
+        .padding(14)
         .frame(maxWidth: .infinity)
-        .padding(12)
-        .background(RoundedRectangle(cornerRadius: 10).fill(.white.opacity(0.04)))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(.white.opacity(0.08), lineWidth: 0.5))
+        .background(RoundedRectangle(cornerRadius: 12).fill(.quaternary.opacity(0.4)))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.05), lineWidth: 0.5))
     }
 
-    // MARK: 折线图卡片
-
-    private func chartCard(
-        title: String, color: Color,
-        points: [NetworkDataPoint], keyPath: KeyPath<NetworkDataPoint, UInt64>
-    ) -> some View {
+    private func chartCard(_ title: String, color: Color, points: [NetworkDataPoint], kp: KeyPath<NetworkDataPoint, UInt64>) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.secondary)
-
+            Text(title).font(.caption).foregroundStyle(.secondary)
             if points.count < 2 {
-                Text("等待更多数据…")
-                    .font(.caption).foregroundStyle(.tertiary)
-                    .frame(maxWidth: .infinity, minHeight: 120)
+                Text("等待数据…").font(.caption).foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, minHeight: 110)
             } else {
-                Chart(points) { point in
-                    LineMark(
-                        x: .value("时间", point.timestamp),
-                        y: .value("速率", point[keyPath: keyPath])
-                    )
-                    .foregroundStyle(color)
-                    .lineStyle(StrokeStyle(lineWidth: 1.5))
-
-                    AreaMark(
-                        x: .value("时间", point.timestamp),
-                        y: .value("速率", point[keyPath: keyPath])
-                    )
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [color.opacity(0.15), color.opacity(0.02)],
-                            startPoint: .top, endPoint: .bottom
-                        )
-                    )
+                Chart(points) { p in
+                    LineMark(x: .value("时间", p.timestamp), y: .value("速率", p[keyPath: kp]))
+                        .foregroundStyle(color).lineStyle(StrokeStyle(lineWidth: 1.5))
+                    AreaMark(x: .value("时间", p.timestamp), y: .value("速率", p[keyPath: kp]))
+                        .foregroundStyle(LinearGradient(
+                            colors: [color.opacity(0.12), color.opacity(0.01)],
+                            startPoint: .top, endPoint: .bottom))
                 }
-                .chartXAxis {
-                    AxisMarks(values: .automatic(desiredCount: 4))
-                }
-                .chartYAxis {
-                    AxisMarks(position: .leading, values: .automatic(desiredCount: 3))
-                }
-                .frame(height: 130)
+                .chartXAxis { AxisMarks(values: .automatic(desiredCount: 4)) }
+                .chartYAxis { AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) }
+                .frame(height: 120)
             }
         }
         .padding(14)
-        .background(RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.04)))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.08), lineWidth: 0.5))
+        .background(RoundedRectangle(cornerRadius: 12).fill(.quaternary.opacity(0.4)))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.05), lineWidth: 0.5))
     }
 
-    // MARK: 每日累计统计
-
-    private var dailyStatsCard: some View {
+    private var dailyCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("今日流量统计")
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.secondary)
-
-            HStack(spacing: 20) {
-                dailyStatItem(
-                    label: "总下载", icon: "arrow.down.circle.fill",
-                    bytes: history.todayStats.download, color: .blue
-                )
-                Divider().frame(height: 36).opacity(0.3)
-                dailyStatItem(
-                    label: "总上传", icon: "arrow.up.circle.fill",
-                    bytes: history.todayStats.upload, color: .purple
-                )
+            Text("今日流量统计").font(.caption).foregroundStyle(.secondary)
+            HStack(spacing: 16) {
+                dailyItem("总下载", bytes: h.todayStats.download, color: .blue)
+                Rectangle().fill(.white.opacity(0.06)).frame(width: 1, height: 32)
+                dailyItem("总上传", bytes: h.todayStats.upload, color: .purple)
             }
         }
         .padding(14)
-        .background(RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.04)))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.08), lineWidth: 0.5))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 12).fill(.quaternary.opacity(0.4)))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.05), lineWidth: 0.5))
     }
 
-    private func dailyStatItem(label: String, icon: String, bytes: UInt64, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Label(label, systemImage: icon)
-                .font(.caption)
-                .foregroundStyle(color)
-            Text(formatTotalBytes(bytes))
-                .font(.title3.weight(.semibold).monospaced())
-                .foregroundStyle(color)
+    private func dailyItem(_ label: String, bytes: UInt64, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label).font(.caption2).foregroundStyle(.secondary)
+            Text(formatTotal(bytes)).font(.callout.weight(.semibold).monospaced()).foregroundStyle(color)
         }
     }
 
-    private func formatTotalBytes(_ bytes: UInt64) -> String {
-        if bytes >= 1_073_741_824 {
-            return String(format: "%.2f GB", Double(bytes) / 1_073_741_824)
-        } else if bytes >= 1_048_576 {
-            return String(format: "%.1f MB", Double(bytes) / 1_048_576)
-        } else if bytes >= 1_024 {
-            return String(format: "%.0f KB", Double(bytes) / 1_024)
-        } else {
-            return "\(bytes) B"
-        }
+    private func formatTotal(_ b: UInt64) -> String {
+        if b >= 1_073_741_824 { return String(format: "%.2f GB", Double(b) / 1_073_741_824) }
+        if b >= 1_048_576 { return String(format: "%.1f MB", Double(b) / 1_048_576) }
+        if b >= 1_024 { return String(format: "%.0f KB", Double(b) / 1_024) }
+        return "\(b) B"
     }
-}
-
-// MARK: - 共享组件
-
-private func gaugeBar(value: Double, color: Color) -> some View {
-    GeometryReader { g in
-        ZStack(alignment: .leading) {
-            Capsule().fill(.white.opacity(0.1)).frame(height: 4)
-            Capsule()
-                .fill(value > 80 ? .red : value > 60 ? .orange : color)
-                .frame(width: max(4, g.size.width * min(value, 100) / 100), height: 4)
-                .animation(.smooth, value: value)
-        }
-    }
-    .frame(height: 4)
 }

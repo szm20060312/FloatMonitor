@@ -9,103 +9,89 @@ struct MenuBarView: View {
     var body: some View {
         VStack(spacing: 0) {
             headerView
-            Divider()
+            separator
 
             ScrollView {
-                VStack(spacing: 0) {
+                VStack(spacing: 10) {
                     cpuSection
-                    sectionDivider
+                    separator
                     memorySection
-                    sectionDivider
+                    separator
                     networkSection
-                    sectionDivider
+                    separator
                     gpuSection
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
             }
 
-            Divider()
+            separator
             footerView
         }
         .frame(width: 260)
-        .background(
-            // 第 1 层：最通透的材质（液态玻璃基底）
-            RoundedRectangle(cornerRadius: 12)
-                .fill(.ultraThinMaterial)
-        )
-        .background(
-            // 第 2 层：极淡白色叠加，模拟玻璃厚度感
-            RoundedRectangle(cornerRadius: 12)
-                .fill(.white.opacity(0.04))
-        )
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(
-            // 第 3 层：极细白色边框，模拟玻璃边缘折射
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(.white.opacity(0.12), lineWidth: 0.5)
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(.white.opacity(0.08), lineWidth: 0.5)
         )
-        .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
+        .shadow(color: .black.opacity(0.12), radius: 16, y: 6)
     }
 
     // MARK: - 标题栏
 
     private var headerView: some View {
         HStack {
-            Label("cpu_mem_tool", systemImage: "cpu")
-                .font(.subheadline.weight(.medium))
+            Image(systemName: "cpu")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.blue)
+            Text("cpu_mem_tool")
+                .font(.caption.weight(.semibold))
             Spacer()
             Button {
                 openMainWindow()
             } label: {
                 Image(systemName: "macwindow")
-                    .font(.subheadline)
+                    .font(.caption)
             }
             .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
             .help("打开桌面窗口")
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 9)
     }
 
     // MARK: - 底部控制栏
 
     private var footerView: some View {
         HStack(spacing: 8) {
-            Picker("刷新间隔", selection: $monitorService.refreshInterval) {
+            Picker("", selection: $monitorService.refreshInterval) {
                 ForEach(SystemMonitorService.availableIntervals, id: \.self) { interval in
-                    Text(formatInterval(interval))
-                        .tag(interval)
-                        .font(.caption)
+                    Text(formatInterval(interval)).tag(interval).font(.caption2)
                 }
             }
             .pickerStyle(.segmented)
             .controlSize(.mini)
-
             Spacer()
-
-            Button {
-                NSApplication.shared.terminate(nil)
-            } label: {
-                Image(systemName: "power")
-                    .font(.caption)
+            Button { NSApplication.shared.terminate(nil) } label: {
+                Image(systemName: "power").font(.caption2)
             }
             .buttonStyle(.plain)
-            .help("退出 cpu_mem_tool")
+            .foregroundStyle(.secondary)
+            .help("退出")
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 7)
     }
 
-    // MARK: - CPU 模块
+    // MARK: - CPU
 
     private var cpuSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            sectionHeader("CPU", systemImage: "cpu", value: monitorService.stats.cpuUsage)
-
-            // 总体进度条
+            sectionHeader("CPU", icon: "cpu", color: .blue,
+                          value: monitorService.stats.cpuUsage)
             gaugeBar(value: monitorService.stats.cpuUsage, color: .blue)
-
-            // 每核心柱状图
             if !monitorService.stats.cpuPerCore.isEmpty {
                 perCoreBars(cores: monitorService.stats.cpuPerCore)
             }
@@ -114,150 +100,126 @@ struct MenuBarView: View {
 
     private func perCoreBars(cores: [Double]) -> some View {
         HStack(spacing: 2) {
-            ForEach(Array(cores.enumerated()), id: \.offset) { i, usage in
-                VStack(spacing: 2) {
-                    RoundedRectangle(cornerRadius: 1)
-                        .fill(
-                            usage > 80 ? Color.red :
-                            usage > 60 ? Color.orange : Color.blue
-                        )
-                        .frame(height: max(2, 14 * min(usage, 100) / 100))
-                        .animation(.smooth, value: usage)
-                }
-                .frame(maxWidth: .infinity)
+            ForEach(Array(cores.enumerated()), id: \.offset) { _, u in
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(coreBarColor(u))
+                    .frame(height: max(2, 14 * min(u, 100) / 100))
+                    .frame(maxWidth: .infinity)
+                    .animation(.spring(response: 0.4, dampingFraction: 0.8), value: u)
             }
         }
         .frame(height: 16)
     }
 
-    // MARK: - 内存模块
+    // MARK: - 内存
 
     private var memorySection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            let memPercent = monitorService.stats.memoryTotal > 0
-                ? Double(monitorService.stats.memoryUsed) / Double(monitorService.stats.memoryTotal) * 100
-                : 0
-            sectionHeader("内存", systemImage: "memorychip", value: memPercent)
-            gaugeBar(value: memPercent, color: pressureColor)
-
-            // 用量信息行
+            let pct = monitorService.stats.memoryTotal > 0
+                ? Double(monitorService.stats.memoryUsed) / Double(monitorService.stats.memoryTotal) * 100 : 0
+            sectionHeader("内存", icon: "memorychip", color: pressureColor,
+                          value: pct)
+            gaugeBar(value: pct, color: pressureColor)
             HStack(spacing: 0) {
-                let pressure = monitorService.stats.memoryPressure
-                Circle()
-                    .fill(pressureColor)
-                    .frame(width: 6, height: 6)
-                Text(" \(pressure.label)")
-                    .font(.caption2)
-                    .foregroundStyle(pressureColor)
+                Circle().fill(pressureColor).frame(width: 6, height: 6)
+                Text(" \(monitorService.stats.memoryPressure.label)")
+                    .font(.caption2).foregroundStyle(pressureColor)
                 Spacer()
                 Text(formatBytes(monitorService.stats.memoryUsed))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Text(" / ")
-                    .font(.caption2)
-                    .foregroundStyle(.quaternary)
+                    .font(.caption2).foregroundStyle(.secondary)
+                Text(" / ").font(.caption2).foregroundStyle(.quaternary)
                 Text(formatBytes(monitorService.stats.memoryTotal))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .font(.caption2).foregroundStyle(.secondary)
             }
         }
     }
 
     private var pressureColor: Color {
         switch monitorService.stats.memoryPressure {
-        case .normal:  return .green
-        case .warning: return .orange
-        case .critical: return .red
+        case .normal: .green; case .warning: .orange; case .critical: .red
         }
     }
 
-    // MARK: - 网络模块
+    // MARK: - 网络
 
     private var networkSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            sectionHeader("网络", systemImage: "network", value: nil)
-            HStack(spacing: 12) {
-                networkItem(label: "下载", systemImage: "arrow.down",
-                            bytesPerSec: monitorService.stats.networkDownload, color: .blue)
-                Divider().frame(height: 28)
-                networkItem(label: "上传", systemImage: "arrow.up",
-                            bytesPerSec: monitorService.stats.networkUpload, color: .purple)
+            sectionHeader("网络", icon: "network", color: .purple, value: nil)
+            HStack(spacing: 10) {
+                netItem("↓ 下载", bytes: monitorService.stats.networkDownload, color: .blue)
+                Rectangle().fill(.white.opacity(0.06)).frame(width: 1, height: 28)
+                netItem("↑ 上传", bytes: monitorService.stats.networkUpload, color: .purple)
             }
         }
     }
 
-    // MARK: - GPU 模块
+    private func netItem(_ label: String, bytes: UInt64, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label).font(.caption2).foregroundStyle(.secondary)
+            Text(formatBytesPerSec(bytes))
+                .font(.caption.weight(.medium).monospaced())
+                .foregroundStyle(color)
+                .contentTransition(.numericText(value: Double(bytes)))
+        }
+    }
+
+    // MARK: - GPU
 
     private var gpuSection: some View {
         Group {
-            if let gpuUsage = monitorService.stats.gpuUsage {
+            if let g = monitorService.stats.gpuUsage {
                 VStack(alignment: .leading, spacing: 8) {
-                    sectionHeader("GPU", systemImage: "display", value: gpuUsage)
-                    gaugeBar(value: gpuUsage, color: .pink)
+                    sectionHeader("GPU", icon: "display", color: .pink, value: g)
+                    gaugeBar(value: g, color: .pink)
                 }
             }
         }
     }
 
-    // MARK: - 分隔线
+    // MARK: - 组件
 
-    private var sectionDivider: some View {
-        Divider()
-            .opacity(0.3)
-            .padding(.vertical, 8)
+    private var separator: some View {
+        Rectangle()
+            .fill(.white.opacity(0.06))
+            .frame(height: 1)
+            .padding(.horizontal, 14)
     }
 
-    // MARK: - 小组件
-
-    private func sectionHeader(_ title: String, systemImage: String, value: Double?) -> some View {
+    private func sectionHeader(_ title: String, icon: String, color: Color, value: Double?) -> some View {
         HStack(spacing: 6) {
-            Image(systemName: systemImage)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .frame(width: 16)
+            Image(systemName: icon)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(color)
+                .frame(width: 14)
             Text(title)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.primary)
             Spacer()
-            if let value {
-                Text(String(format: "%.0f%%", value))
-                    .font(.system(.title3, design: .rounded, weight: .semibold))
+            if let v = value {
+                Text(String(format: "%.0f%%", v))
+                    .font(.system(.callout, design: .rounded, weight: .bold))
                     .monospacedDigit()
+                    .foregroundStyle(v > 80 ? .red : v > 60 ? .orange : .primary)
+                    .contentTransition(.numericText(value: v))
             }
         }
     }
 
     private func gaugeBar(value: Double, color: Color) -> some View {
-        GeometryReader { geometry in
+        GeometryReader { g in
             ZStack(alignment: .leading) {
+                Capsule().fill(.quaternary).frame(height: 4)
                 Capsule()
-                    .fill(.white.opacity(0.1))
-                    .frame(height: 4)
-                Capsule()
-                    .fill(
-                        value > 80 ? Color.red :
-                        value > 60 ? Color.orange : color
-                    )
-                    .frame(width: max(4, geometry.size.width * min(value, 100) / 100), height: 4)
-                    .animation(.smooth, value: value)
+                    .fill(coreBarColor(value))
+                    .frame(width: max(4, g.size.width * min(value, 100) / 100), height: 4)
+                    .animation(.spring(response: 0.4, dampingFraction: 0.8), value: value)
             }
         }
         .frame(height: 4)
     }
 
-    private func networkItem(label: String, systemImage: String, bytesPerSec: UInt64, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 4) {
-                Image(systemName: systemImage)
-                    .font(.caption2)
-                Text(label)
-                    .font(.caption2)
-            }
-            .foregroundStyle(.secondary)
-            Text(formatBytesPerSec(bytesPerSec))
-                .font(.system(.subheadline, design: .monospaced, weight: .medium))
-                .foregroundStyle(color)
-        }
+    private func coreBarColor(_ usage: Double) -> Color {
+        usage > 80 ? .red : usage > 60 ? .orange : usage > 30 ? .blue : .blue.opacity(0.6)
     }
 
     // MARK: - 格式化
@@ -267,17 +229,13 @@ struct MenuBarView: View {
     }
 
     private func formatBytes(_ bytes: UInt64) -> String {
-        String(format: "%.1f GB", Double(bytes) / (1024 * 1024 * 1024))
+        String(format: "%.1f GB", Double(bytes) / (1024*1024*1024))
     }
 
     private func formatBytesPerSec(_ bytes: UInt64) -> String {
-        if bytes >= 1_000_000 {
-            return String(format: "%.1f MB/s", Double(bytes) / 1_000_000)
-        } else if bytes >= 1_000 {
-            return String(format: "%.0f KB/s", Double(bytes) / 1_000)
-        } else {
-            return "\(bytes) B/s"
-        }
+        if bytes >= 1_000_000 { return String(format: "%.1f MB/s", Double(bytes)/1_000_000) }
+        if bytes >= 1_000     { return String(format: "%.0f KB/s", Double(bytes)/1_000) }
+        return "\(bytes) B/s"
     }
 
     // MARK: - 动作
