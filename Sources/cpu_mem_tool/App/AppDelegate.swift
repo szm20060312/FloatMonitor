@@ -58,21 +58,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         observeSettings()
     }
 
-    // MARK: - 状态栏（双行紧凑视图）
+    // MARK: - 状态栏
 
     private func setupStatusBar() {
         statusItem = NSStatusBar.system.statusItem(withLength: 37)
 
         if let button = statusItem.button {
-            // 隐藏默认 title，使用自定义双行 view
-            button.title = ""
             button.target = self
             button.action = #selector(togglePopover)
+            button.font = NSFont.monospacedDigitSystemFont(ofSize: NSFont.smallSystemFontSize, weight: .medium)
 
+            // 创建自定义双行 view（始终作为子视图）
             statusView = StatusBarTextView(frame: button.bounds)
             statusView.autoresizingMask = [.width, .height]
             button.addSubview(statusView)
         }
+
+        // 初始应用模式
+        applyMenuBarMode(AppSettings.shared.menuBarMode)
     }
 
     // MARK: - Popover
@@ -136,43 +139,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - 监听设置变更
 
-    private var currentMode: MenuBarMode = AppSettings.shared.menuBarMode
-
     private func observeSettings() {
         AppSettings.shared.$menuBarMode
             .receive(on: DispatchQueue.main)
             .sink { [weak self] mode in
-                guard let self, mode != self.currentMode else { return }
-                self.currentMode = mode
-                self.rebuildStatusBar(for: mode)
+                self?.applyMenuBarMode(mode)
             }
             .store(in: &cancellables)
     }
 
-    private func rebuildStatusBar(for mode: MenuBarMode) {
-        // 移除旧的 statusItem
-        if let item = statusItem {
-            NSStatusBar.system.removeStatusItem(item)
-        }
+    /// 切换显示模式，不销毁 statusItem（避免 scene 断开）
+    private func applyMenuBarMode(_ mode: MenuBarMode) {
+        switch mode {
+        case .compact:
+            statusItem.length = 37
+            statusItem.button?.title = ""
+            statusView.isHidden = false
 
-        let length: CGFloat = mode == .compact ? 37 : NSStatusItem.variableLength
-        statusItem = NSStatusBar.system.statusItem(withLength: length)
-
-        if mode == .compact {
-            if let button = statusItem.button {
-                button.title = ""
-                button.target = self
-                button.action = #selector(togglePopover)
-                statusView = StatusBarTextView(frame: button.bounds)
-                statusView.autoresizingMask = [.width, .height]
-                button.addSubview(statusView)
-            }
-        } else {
-            if let button = statusItem.button {
-                button.font = NSFont.monospacedDigitSystemFont(ofSize: NSFont.smallSystemFontSize, weight: .medium)
-                button.target = self
-                button.action = #selector(togglePopover)
-            }
+        case .textOnly, .iconText:
+            statusItem.length = NSStatusItem.variableLength
+            statusView.isHidden = true
         }
     }
 }
