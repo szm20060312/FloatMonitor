@@ -1,4 +1,5 @@
 import SwiftUI
+import Charts
 
 // MARK: - 桌面窗口主视图
 
@@ -399,40 +400,150 @@ private struct MemoryTab: View {
 
 private struct NetworkTab: View {
     @EnvironmentObject var monitorService: SystemMonitorService
+    @StateObject private var history = NetworkHistoryManager.shared
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                // 下载
-                networkDetailCard(
-                    title: "下载", icon: "arrow.down.circle.fill", color: .blue,
-                    rate: monitorService.stats.networkDownload
+            VStack(alignment: .leading, spacing: 20) {
+                // 实时速率卡片
+                HStack(spacing: 16) {
+                    rateCard(label: "下载", icon: "arrow.down.circle.fill",
+                             rate: monitorService.stats.networkDownload, color: .blue)
+                    rateCard(label: "上传", icon: "arrow.up.circle.fill",
+                             rate: monitorService.stats.networkUpload, color: .purple)
+                }
+
+                // 折线图: 下载速率历史
+                chartCard(
+                    title: "下载速率 (近 2 分钟)", color: .blue,
+                    points: history.recentPoints, keyPath: \.download
                 )
-                // 上传
-                networkDetailCard(
-                    title: "上传", icon: "arrow.up.circle.fill", color: .purple,
-                    rate: monitorService.stats.networkUpload
+
+                // 折线图: 上传速率历史
+                chartCard(
+                    title: "上传速率 (近 2 分钟)", color: .purple,
+                    points: history.recentPoints, keyPath: \.upload
                 )
+
+                // 今日累计统计
+                dailyStatsCard
             }
             .padding(20)
         }
     }
 
-    private func networkDetailCard(title: String, icon: String, color: Color, rate: UInt64) -> some View {
-        VStack(spacing: 16) {
-            HStack {
-                Label(title, systemImage: icon)
-                    .font(.headline)
-                    .foregroundStyle(color)
-                Spacer()
-            }
+    // MARK: 实时速率小卡片
+
+    private func rateCard(label: String, icon: String, rate: UInt64, color: Color) -> some View {
+        VStack(spacing: 6) {
+            Label(label, systemImage: icon)
+                .font(.subheadline)
+                .foregroundStyle(color)
             Text(OverviewTab.formatBytesPerSec(rate))
-                .font(.system(size: 36, weight: .thin, design: .monospaced))
+                .font(.title2.weight(.semibold).monospaced())
                 .foregroundStyle(color)
         }
-        .padding(20)
+        .frame(maxWidth: .infinity)
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: 10).fill(.white.opacity(0.04)))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(.white.opacity(0.08), lineWidth: 0.5))
+    }
+
+    // MARK: 折线图卡片
+
+    private func chartCard(
+        title: String, color: Color,
+        points: [NetworkDataPoint], keyPath: KeyPath<NetworkDataPoint, UInt64>
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.secondary)
+
+            if points.count < 2 {
+                Text("等待更多数据…")
+                    .font(.caption).foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, minHeight: 120)
+            } else {
+                Chart(points) { point in
+                    LineMark(
+                        x: .value("时间", point.timestamp),
+                        y: .value("速率", point[keyPath: keyPath])
+                    )
+                    .foregroundStyle(color)
+                    .lineStyle(StrokeStyle(lineWidth: 1.5))
+
+                    AreaMark(
+                        x: .value("时间", point.timestamp),
+                        y: .value("速率", point[keyPath: keyPath])
+                    )
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [color.opacity(0.15), color.opacity(0.02)],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    )
+                }
+                .chartXAxis {
+                    AxisMarks(values: .automatic(desiredCount: 4))
+                }
+                .chartYAxis {
+                    AxisMarks(position: .leading, values: .automatic(desiredCount: 3))
+                }
+                .frame(height: 130)
+            }
+        }
+        .padding(14)
         .background(RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.04)))
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.08), lineWidth: 0.5))
+    }
+
+    // MARK: 每日累计统计
+
+    private var dailyStatsCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("今日流量统计")
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 20) {
+                dailyStatItem(
+                    label: "总下载", icon: "arrow.down.circle.fill",
+                    bytes: history.todayStats.download, color: .blue
+                )
+                Divider().frame(height: 36).opacity(0.3)
+                dailyStatItem(
+                    label: "总上传", icon: "arrow.up.circle.fill",
+                    bytes: history.todayStats.upload, color: .purple
+                )
+            }
+        }
+        .padding(14)
+        .background(RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.04)))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.08), lineWidth: 0.5))
+    }
+
+    private func dailyStatItem(label: String, icon: String, bytes: UInt64, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Label(label, systemImage: icon)
+                .font(.caption)
+                .foregroundStyle(color)
+            Text(formatTotalBytes(bytes))
+                .font(.title3.weight(.semibold).monospaced())
+                .foregroundStyle(color)
+        }
+    }
+
+    private func formatTotalBytes(_ bytes: UInt64) -> String {
+        if bytes >= 1_073_741_824 {
+            return String(format: "%.2f GB", Double(bytes) / 1_073_741_824)
+        } else if bytes >= 1_048_576 {
+            return String(format: "%.1f MB", Double(bytes) / 1_048_576)
+        } else if bytes >= 1_024 {
+            return String(format: "%.0f KB", Double(bytes) / 1_024)
+        } else {
+            return "\(bytes) B"
+        }
     }
 }
 

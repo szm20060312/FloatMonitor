@@ -87,6 +87,13 @@ final class SystemMonitorService: ObservableObject, @unchecked Sendable {
             networkDownload: network.download,
             networkUpload: network.upload
         )
+
+        // 记录网络历史（用于折线图和每日统计）
+        NetworkHistoryManager.shared.record(
+            download: network.download,
+            upload: network.upload,
+            interval: refreshInterval
+        )
     }
 
     // MARK: - CPU
