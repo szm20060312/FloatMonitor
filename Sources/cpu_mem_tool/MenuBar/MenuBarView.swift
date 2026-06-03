@@ -12,7 +12,7 @@ struct MenuBarView: View {
 
             // 内容区
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(spacing: 12) {
                     cpuSection
                     Divider()
                     memorySection
@@ -21,7 +21,7 @@ struct MenuBarView: View {
                     Divider()
                     gpuSection
                 }
-                .padding(16)
+                .padding(10)
             }
 
             Divider()
@@ -29,7 +29,7 @@ struct MenuBarView: View {
             // 底部控制栏：刷新间隔 + 退出
             footerView
         }
-        .frame(width: 320)
+        .frame(width: 260)
     }
 
     // MARK: - 底部控制栏
@@ -63,8 +63,8 @@ struct MenuBarView: View {
             .buttonStyle(.plain)
             .help("退出 cpu_mem_tool")
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
     }
 
     // MARK: - 标题栏
@@ -83,8 +83,8 @@ struct MenuBarView: View {
             .buttonStyle(.plain)
             .help("打开桌面窗口")
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
     }
 
     // MARK: - 各模块
@@ -160,8 +160,8 @@ struct MenuBarView: View {
             Spacer()
             if let value {
                 Text(String(format: "%.0f%%", value))
-                    .font(.title2)
-                    .fontWeight(.bold)
+                    .font(.title3)
+                    .fontWeight(.semibold)
                     .monospacedDigit()
             }
         }
