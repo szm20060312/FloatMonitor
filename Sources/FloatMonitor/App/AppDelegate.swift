@@ -62,19 +62,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func setupStatusBar() {
         statusItem = NSStatusBar.system.statusItem(withLength: 37)
+        statusItem.isVisible = true
 
         if let button = statusItem.button {
             button.target = self
             button.action = #selector(togglePopover)
             button.font = NSFont.monospacedDigitSystemFont(ofSize: NSFont.smallSystemFontSize, weight: .medium)
 
-            // 创建自定义双行 view（始终作为子视图）
             statusView = StatusBarTextView(frame: button.bounds)
             statusView.autoresizingMask = [.width, .height]
             button.addSubview(statusView)
         }
 
-        // 初始应用模式
         applyMenuBarMode(AppSettings.shared.menuBarMode)
     }
 
@@ -121,6 +120,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func updateStatusBar(cpu: Double, memoryUsed: UInt64, memoryTotal: UInt64) {
+        // 每次更新时确保菜单栏项可见（防止被系统隐藏）
+        statusItem.isVisible = true
+
         let cpuInt = Int(cpu)
         let memInt = memoryTotal > 0 ? Int(Double(memoryUsed) / Double(memoryTotal) * 100) : 0
 
@@ -150,6 +152,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// 切换显示模式，不销毁 statusItem（避免 scene 断开）
     private func applyMenuBarMode(_ mode: MenuBarMode) {
+        statusItem.isVisible = true
         switch mode {
         case .compact:
             statusItem.length = 37
