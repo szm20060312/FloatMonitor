@@ -1,0 +1,24 @@
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Xcode
+*.xcworkspace
+xcuserdata/
+DerivedData/
+*.xcuserstate
+
+# macOS
+.DS_Store
+.AppleDouble
+
+# Build artifacts
+*.app
+*.dmg
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log

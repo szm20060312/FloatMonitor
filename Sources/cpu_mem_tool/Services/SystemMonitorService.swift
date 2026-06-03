@@ -1,6 +1,5 @@
 import Foundation
 import Darwin
-import IOKit
 
 /// 系统监控服务（全局单例）
 /// 按可配置的间隔采集 CPU/内存/温度/网络/GPU 真实数据
@@ -76,8 +75,6 @@ final class SystemMonitorService: ObservableObject, @unchecked Sendable {
         let cpu = fetchCPU()
         let memory = fetchMemory()
         let network = fetchNetwork()
-        let cpuTemp = fetchCPUTemperature()
-        let gpuTemp = fetchGPUTemperature()
         let gpuUsage = GPUMonitor.getUsage()
 
         stats = SystemStats(
@@ -86,8 +83,6 @@ final class SystemMonitorService: ObservableObject, @unchecked Sendable {
             memoryTotal: memory.total,
             memoryUsed: memory.used,
             memoryPressure: memory.pressure,
-            cpuTemperature: cpuTemp,
-            gpuTemperature: gpuTemp,
             gpuUsage: gpuUsage,
             networkDownload: network.download,
             networkUpload: network.upload
@@ -295,28 +290,5 @@ final class SystemMonitorService: ObservableObject, @unchecked Sendable {
         } else {
             return "\(bytesPerSec) B/s"
         }
-    }
-
-    // MARK: - 温度（SMC）
-
-    private func fetchCPUTemperature() -> Double? {
-        // Apple Silicon 上尝试多个可能的 SMC key
-        let cpuKeys = ["TC0p", "TC0P", "Tp09", "Tp0A", "Tp0B", "TC0F"]
-        for key in cpuKeys {
-            if let temp = SMCMonitor.readDouble(key) {
-                return temp
-            }
-        }
-        return nil
-    }
-
-    private func fetchGPUTemperature() -> Double? {
-        let gpuKeys = ["TG0p", "TG0P", "Tg0f", "Tg0g", "TG0D"]
-        for key in gpuKeys {
-            if let temp = SMCMonitor.readDouble(key) {
-                return temp
-            }
-        }
-        return nil
     }
 }

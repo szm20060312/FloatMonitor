@@ -19,8 +19,6 @@ struct MenuBarView: View {
                     Divider()
                     networkSection
                     Divider()
-                    temperatureSection
-                    Divider()
                     gpuSection
                 }
                 .padding(16)
@@ -143,20 +141,6 @@ struct MenuBarView: View {
         }
     }
 
-    private var temperatureSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            sectionHeader("温度", systemImage: "thermometer.medium", value: nil)
-            HStack(spacing: 16) {
-                if let cpuTemp = monitorService.stats.cpuTemperature {
-                    tempItem(label: "CPU", temp: cpuTemp)
-                }
-                if let gpuTemp = monitorService.stats.gpuTemperature {
-                    tempItem(label: "GPU", temp: gpuTemp)
-                }
-            }
-        }
-    }
-
     private var gpuSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             if let gpuUsage = monitorService.stats.gpuUsage {
@@ -212,19 +196,6 @@ struct MenuBarView: View {
                 .fontWeight(.medium)
                 .monospacedDigit()
                 .foregroundStyle(color)
-        }
-    }
-
-    private func tempItem(label: String, temp: Double) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(String(format: "%.0f°C", temp))
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .monospacedDigit()
-                .foregroundStyle(temp > 80 ? .red : temp > 60 ? .orange : .teal)
         }
     }
 

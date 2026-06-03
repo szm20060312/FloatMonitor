@@ -1,5 +1,0 @@
----
-triple:          'arm64-apple-darwin'
-binary-path:     '/Users/szm/vibe coding/cpu_mem_tool/.build/arm64-apple-macosx/debug/cpu_mem_tool'
-relocations:     []
-...

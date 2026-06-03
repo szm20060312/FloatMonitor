@@ -11,10 +11,6 @@ struct SystemStats {
     var memoryUsed: UInt64 = 0              // 已用内存 (bytes)
     var memoryPressure: MemoryPressure = .normal
 
-    // 温度 (°C)
-    var cpuTemperature: Double? = nil
-    var gpuTemperature: Double? = nil
-
     // GPU
     var gpuUsage: Double? = nil             // 0-100
 
