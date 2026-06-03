@@ -52,12 +52,10 @@ struct MenuBarView: View {
                 Image(systemName: "macwindow").font(.caption)
             }
             .buttonStyle(.plain).foregroundStyle(.secondary).help("打开桌面窗口")
-            if #available(macOS 26, *) {
-                Button { openSettings() } label: {
-                    Image(systemName: "gearshape").font(.caption)
-                }
-                .buttonStyle(.plain).foregroundStyle(.secondary).help("设置")
+            SettingsLink {
+                Image(systemName: "gearshape").font(.caption)
             }
+            .buttonStyle(.plain).foregroundStyle(.secondary).help("设置")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 6)
@@ -255,8 +253,4 @@ struct MenuBarView: View {
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    private func openSettings() {
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-        NSApp.activate(ignoringOtherApps: true)
-    }
 }
