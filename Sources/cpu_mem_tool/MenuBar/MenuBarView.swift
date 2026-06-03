@@ -37,10 +37,6 @@ struct MenuBarView: View {
     private var footerView: some View {
         HStack(spacing: 8) {
             // 刷新间隔选择器
-            Text("刷新:")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
             Picker("刷新间隔", selection: $monitorService.refreshInterval) {
                 ForEach(SystemMonitorService.availableIntervals, id: \.self) { interval in
                     Text(formatInterval(interval))
