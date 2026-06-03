@@ -1,42 +1,61 @@
 import SwiftUI
 
-/// 菜单栏弹出面板的内容视图
+// MARK: - 菜单栏弹出面板
+
 struct MenuBarView: View {
     @EnvironmentObject var monitorService: SystemMonitorService
 
     var body: some View {
         VStack(spacing: 0) {
-            // 标题栏
             headerView
             Divider()
 
-            // 内容区
             ScrollView {
-                VStack(spacing: 12) {
+                VStack(spacing: 0) {
                     cpuSection
-                    Divider()
+                    sectionDivider
                     memorySection
-                    Divider()
+                    sectionDivider
                     networkSection
-                    Divider()
+                    sectionDivider
                     gpuSection
                 }
-                .padding(10)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
             }
 
             Divider()
-
-            // 底部控制栏：刷新间隔 + 退出
             footerView
         }
         .frame(width: 260)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .shadow(color: .black.opacity(0.15), radius: 8, y: 2)
+    }
+
+    // MARK: - 标题栏
+
+    private var headerView: some View {
+        HStack {
+            Label("cpu_mem_tool", systemImage: "cpu")
+                .font(.subheadline.weight(.medium))
+            Spacer()
+            Button {
+                openMainWindow()
+            } label: {
+                Image(systemName: "macwindow")
+                    .font(.subheadline)
+            }
+            .buttonStyle(.plain)
+            .help("打开桌面窗口")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
     }
 
     // MARK: - 底部控制栏
 
     private var footerView: some View {
         HStack(spacing: 8) {
-            // 刷新间隔选择器
             Picker("刷新间隔", selection: $monitorService.refreshInterval) {
                 ForEach(SystemMonitorService.availableIntervals, id: \.self) { interval in
                     Text(formatInterval(interval))
@@ -49,7 +68,6 @@ struct MenuBarView: View {
 
             Spacer()
 
-            // 退出按钮
             Button {
                 NSApplication.shared.terminate(nil)
             } label: {
@@ -63,34 +81,41 @@ struct MenuBarView: View {
         .padding(.vertical, 6)
     }
 
-    // MARK: - 标题栏
-
-    private var headerView: some View {
-        HStack {
-            Label("cpu_mem_tool", systemImage: "cpu")
-                .font(.headline)
-            Spacer()
-            Button {
-                openMainWindow()
-            } label: {
-                Image(systemName: "macwindow")
-                    .font(.title3)
-            }
-            .buttonStyle(.plain)
-            .help("打开桌面窗口")
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-    }
-
-    // MARK: - 各模块
+    // MARK: - CPU 模块
 
     private var cpuSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             sectionHeader("CPU", systemImage: "cpu", value: monitorService.stats.cpuUsage)
+
+            // 总体进度条
             gaugeBar(value: monitorService.stats.cpuUsage, color: .blue)
+
+            // 每核心柱状图
+            if !monitorService.stats.cpuPerCore.isEmpty {
+                perCoreBars(cores: monitorService.stats.cpuPerCore)
+            }
         }
     }
+
+    private func perCoreBars(cores: [Double]) -> some View {
+        HStack(spacing: 2) {
+            ForEach(Array(cores.enumerated()), id: \.offset) { i, usage in
+                VStack(spacing: 2) {
+                    RoundedRectangle(cornerRadius: 1)
+                        .fill(
+                            usage > 80 ? Color.red :
+                            usage > 60 ? Color.orange : Color.blue
+                        )
+                        .frame(height: max(2, 14 * min(usage, 100) / 100))
+                        .animation(.smooth, value: usage)
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .frame(height: 16)
+    }
+
+    // MARK: - 内存模块
 
     private var memorySection: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -98,66 +123,89 @@ struct MenuBarView: View {
                 ? Double(monitorService.stats.memoryUsed) / Double(monitorService.stats.memoryTotal) * 100
                 : 0
             sectionHeader("内存", systemImage: "memorychip", value: memPercent)
-            gaugeBar(value: memPercent, color: .green)
-            HStack {
-                Text("压力: \(monitorService.stats.memoryPressure.label)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            gaugeBar(value: memPercent, color: pressureColor)
+
+            // 用量信息行
+            HStack(spacing: 0) {
+                let pressure = monitorService.stats.memoryPressure
+                Circle()
+                    .fill(pressureColor)
+                    .frame(width: 6, height: 6)
+                Text(" \(pressure.label)")
+                    .font(.caption2)
+                    .foregroundStyle(pressureColor)
                 Spacer()
                 Text(formatBytes(monitorService.stats.memoryUsed))
-                    .font(.caption)
+                    .font(.caption2)
                     .foregroundStyle(.secondary)
                 Text(" / ")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.caption2)
+                    .foregroundStyle(.quaternary)
                 Text(formatBytes(monitorService.stats.memoryTotal))
-                    .font(.caption)
+                    .font(.caption2)
                     .foregroundStyle(.secondary)
             }
         }
     }
+
+    private var pressureColor: Color {
+        switch monitorService.stats.memoryPressure {
+        case .normal:  return .green
+        case .warning: return .orange
+        case .critical: return .red
+        }
+    }
+
+    // MARK: - 网络模块
 
     private var networkSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             sectionHeader("网络", systemImage: "network", value: nil)
-            HStack(spacing: 16) {
-                networkItem(
-                    label: "下载",
-                    systemImage: "arrow.down",
-                    bytesPerSec: monitorService.stats.networkDownload,
-                    color: .blue
-                )
-                networkItem(
-                    label: "上传",
-                    systemImage: "arrow.up",
-                    bytesPerSec: monitorService.stats.networkUpload,
-                    color: .purple
-                )
+            HStack(spacing: 12) {
+                networkItem(label: "下载", systemImage: "arrow.down",
+                            bytesPerSec: monitorService.stats.networkDownload, color: .blue)
+                Divider().frame(height: 28)
+                networkItem(label: "上传", systemImage: "arrow.up",
+                            bytesPerSec: monitorService.stats.networkUpload, color: .purple)
             }
         }
     }
 
+    // MARK: - GPU 模块
+
     private var gpuSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        Group {
             if let gpuUsage = monitorService.stats.gpuUsage {
-                sectionHeader("GPU", systemImage: "display", value: gpuUsage)
-                gaugeBar(value: gpuUsage, color: .pink)
+                VStack(alignment: .leading, spacing: 8) {
+                    sectionHeader("GPU", systemImage: "display", value: gpuUsage)
+                    gaugeBar(value: gpuUsage, color: .pink)
+                }
             }
         }
+    }
+
+    // MARK: - 分隔线
+
+    private var sectionDivider: some View {
+        Divider()
+            .padding(.vertical, 8)
     }
 
     // MARK: - 小组件
 
     private func sectionHeader(_ title: String, systemImage: String, value: Double?) -> some View {
-        HStack {
-            Label(title, systemImage: systemImage)
-                .font(.subheadline)
+        HStack(spacing: 6) {
+            Image(systemName: systemImage)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(width: 16)
+            Text(title)
+                .font(.caption)
                 .foregroundStyle(.secondary)
             Spacer()
             if let value {
                 Text(String(format: "%.0f%%", value))
-                    .font(.title3)
-                    .fontWeight(.semibold)
+                    .font(.system(.title3, design: .rounded, weight: .semibold))
                     .monospacedDigit()
             }
         }
@@ -166,31 +214,32 @@ struct MenuBarView: View {
     private func gaugeBar(value: Double, color: Color) -> some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 3)
+                Capsule()
                     .fill(.quaternary)
-                    .frame(height: 6)
-                RoundedRectangle(cornerRadius: 3)
+                    .frame(height: 4)
+                Capsule()
                     .fill(
                         value > 80 ? Color.red :
-                        value > 60 ? Color.orange :
-                        color
+                        value > 60 ? Color.orange : color
                     )
-                    .frame(width: geometry.size.width * min(value, 100) / 100, height: 6)
+                    .frame(width: max(4, geometry.size.width * min(value, 100) / 100), height: 4)
                     .animation(.smooth, value: value)
             }
         }
-        .frame(height: 6)
+        .frame(height: 4)
     }
 
     private func networkItem(label: String, systemImage: String, bytesPerSec: UInt64, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Label(label, systemImage: systemImage)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 4) {
+                Image(systemName: systemImage)
+                    .font(.caption2)
+                Text(label)
+                    .font(.caption2)
+            }
+            .foregroundStyle(.secondary)
             Text(formatBytesPerSec(bytesPerSec))
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .monospacedDigit()
+                .font(.system(.subheadline, design: .monospaced, weight: .medium))
                 .foregroundStyle(color)
         }
     }
@@ -198,16 +247,11 @@ struct MenuBarView: View {
     // MARK: - 格式化
 
     private func formatInterval(_ interval: TimeInterval) -> String {
-        if interval >= 1.0 {
-            return "\(Int(interval))秒"
-        } else {
-            return String(format: "%.1f秒", interval)
-        }
+        interval >= 1.0 ? "\(Int(interval))秒" : String(format: "%.1f秒", interval)
     }
 
     private func formatBytes(_ bytes: UInt64) -> String {
-        let gb = Double(bytes) / (1024 * 1024 * 1024)
-        return String(format: "%.1f GB", gb)
+        String(format: "%.1f GB", Double(bytes) / (1024 * 1024 * 1024))
     }
 
     private func formatBytesPerSec(_ bytes: UInt64) -> String {
@@ -225,10 +269,7 @@ struct MenuBarView: View {
     private func openMainWindow() {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
-
-        // 确保有可见窗口
         if NSApp.windows.isEmpty || NSApp.windows.allSatisfy({ !$0.isVisible }) {
-            // 通过 URL scheme 或通知打开窗口
             if let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
                 window.makeKeyAndOrderFront(nil)
             }
