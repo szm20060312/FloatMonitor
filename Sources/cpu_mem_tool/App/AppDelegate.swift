@@ -80,10 +80,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover = NSPopover()
         popover.contentSize = NSSize(width: 260, height: 380)
         popover.behavior = .transient
-        popover.contentViewController = NSHostingController(
+
+        // 用 NSVisualEffectView 作为底层承载，实现 Liquid Glass 效果
+        let visualEffectView = NSVisualEffectView(frame: NSRect(x: 0, y: 0, width: 260, height: 380))
+        visualEffectView.wantsLayer = true
+        visualEffectView.material = .fullScreenUI       // 液态玻璃材质
+        visualEffectView.blendingMode = .behindWindow   // 透出背后内容（无模糊）
+        visualEffectView.state = .active
+        visualEffectView.isEmphasized = false
+        visualEffectView.layer?.cornerRadius = 12
+        visualEffectView.layer?.masksToBounds = true
+
+        // SwiftUI 视图（应用 .glassEffect(.clear)）
+        let hostingView = NSHostingView(
             rootView: MenuBarView()
                 .environmentObject(SystemMonitorService.shared)
+                .glassEffect(.clear)
         )
+        hostingView.translatesAutoresizingMaskIntoConstraints = false
+
+        visualEffectView.addSubview(hostingView)
+        NSLayoutConstraint.activate([
+            hostingView.leadingAnchor.constraint(equalTo: visualEffectView.leadingAnchor),
+            hostingView.trailingAnchor.constraint(equalTo: visualEffectView.trailingAnchor),
+            hostingView.topAnchor.constraint(equalTo: visualEffectView.topAnchor),
+            hostingView.bottomAnchor.constraint(equalTo: visualEffectView.bottomAnchor),
+        ])
+
+        let vc = NSViewController()
+        vc.view = visualEffectView
+        popover.contentViewController = vc
     }
 
     @objc private func togglePopover() {
