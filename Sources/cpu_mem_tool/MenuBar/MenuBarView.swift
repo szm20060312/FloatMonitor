@@ -282,12 +282,13 @@ struct MenuBarView: View {
     // MARK: - 动作
 
     private func openMainWindow() {
+        // 显示 Dock 图标
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
-        if NSApp.windows.isEmpty || NSApp.windows.allSatisfy({ !$0.isVisible }) {
-            if let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
-                window.makeKeyAndOrderFront(nil)
-            }
+
+        // 确保窗口可见
+        if let window = NSApp.windows.first {
+            window.makeKeyAndOrderFront(nil)
         }
     }
 }
