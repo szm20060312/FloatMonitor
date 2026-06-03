@@ -12,7 +12,7 @@ struct MenuBarView: View {
             separator
 
             ScrollView {
-                VStack(spacing: 10) {
+                VStack(spacing: 6) {
                     cpuSection
                     separator
                     memorySection
@@ -22,7 +22,7 @@ struct MenuBarView: View {
                     gpuSection
                 }
                 .padding(.horizontal, 14)
-                .padding(.vertical, 10)
+                .padding(.vertical, 6)
             }
 
             separator
@@ -59,13 +59,13 @@ struct MenuBarView: View {
             .help("打开桌面窗口")
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 9)
+        .padding(.vertical, 6)
     }
 
     // MARK: - 底部控制栏
 
     private var footerView: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 5) {
             Picker("", selection: $monitorService.refreshInterval) {
                 ForEach(SystemMonitorService.availableIntervals, id: \.self) { interval in
                     Text(formatInterval(interval)).tag(interval).font(.caption2)
@@ -88,7 +88,7 @@ struct MenuBarView: View {
     // MARK: - CPU
 
     private var cpuSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 5) {
             sectionHeader("CPU", icon: "cpu", color: .blue,
                           value: monitorService.stats.cpuUsage)
             gaugeBar(value: monitorService.stats.cpuUsage, color: .blue)
@@ -114,7 +114,7 @@ struct MenuBarView: View {
     // MARK: - 内存
 
     private var memorySection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 5) {
             let pct = monitorService.stats.memoryTotal > 0
                 ? Double(monitorService.stats.memoryUsed) / Double(monitorService.stats.memoryTotal) * 100 : 0
             sectionHeader("内存", icon: "memorychip", color: pressureColor,
@@ -143,7 +143,7 @@ struct MenuBarView: View {
     // MARK: - 网络
 
     private var networkSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 5) {
             sectionHeader("网络", icon: "network", color: .purple, value: nil)
             HStack(spacing: 10) {
                 netItem("↓ 下载", bytes: monitorService.stats.networkDownload, color: .blue)
@@ -168,7 +168,7 @@ struct MenuBarView: View {
     private var gpuSection: some View {
         Group {
             if let g = monitorService.stats.gpuUsage {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 5) {
                     sectionHeader("GPU", icon: "display", color: .pink, value: g)
                     gaugeBar(value: g, color: .pink)
                 }

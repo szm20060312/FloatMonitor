@@ -136,42 +136,40 @@ private struct OverviewTab: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 14) {
-                HStack(spacing: 14) {
-                    metricCard("CPU", icon: "cpu", color: .blue, value: s.stats.cpuUsage) {
-                        gaugeBar(s.stats.cpuUsage, color: .blue)
-                        miniCores(s.stats.cpuPerCore)
-                    }
-                    metricCard("内存", icon: "memorychip", color: memColor, value: memPct) {
-                        gaugeBar(memPct, color: memColor)
-                        HStack {
-                            Circle().fill(memColor).frame(width: 5, height: 5)
-                            Text(s.stats.memoryPressure.label).font(.caption2).foregroundStyle(memColor)
-                            Spacer()
-                            Text(fmtBytes(s.stats.memoryUsed)).font(.caption2).foregroundStyle(.secondary)
-                            Text(" / ").font(.caption2).foregroundStyle(.quaternary)
-                            Text(fmtBytes(s.stats.memoryTotal)).font(.caption2).foregroundStyle(.secondary)
-                        }
+                metricCard("CPU", icon: "cpu", color: .blue, value: s.stats.cpuUsage) {
+                    gaugeBar(s.stats.cpuUsage, color: .blue)
+                    miniCores(s.stats.cpuPerCore)
+                }
+                metricCard("内存", icon: "memorychip", color: memColor, value: memPct) {
+                    gaugeBar(memPct, color: memColor)
+                    HStack {
+                        Circle().fill(memColor).frame(width: 5, height: 5)
+                        Text(s.stats.memoryPressure.label).font(.caption2).foregroundStyle(memColor)
+                        Spacer()
+                        Text(fmtBytes(s.stats.memoryUsed)).font(.caption2).foregroundStyle(.secondary)
+                        Text(" / ").font(.caption2).foregroundStyle(.quaternary)
+                        Text(fmtBytes(s.stats.memoryTotal)).font(.caption2).foregroundStyle(.secondary)
                     }
                 }
-                HStack(spacing: 14) {
-                    if let g = s.stats.gpuUsage {
-                        metricCard("GPU", icon: "display", color: .pink, value: g) {
-                            gaugeBar(g, color: .pink)
-                        }
+                if let g = s.stats.gpuUsage {
+                    metricCard("GPU", icon: "display", color: .pink, value: g) {
+                        gaugeBar(g, color: .pink)
                     }
-                    metricCard("网络", icon: "network", color: .purple, value: nil) {
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text("↓ 下载").font(.caption2).foregroundStyle(.secondary)
-                                Text(fmtRate(s.stats.networkDownload))
-                                    .font(.caption.weight(.medium).monospaced()).foregroundStyle(.blue)
-                            }
-                            Spacer()
-                            VStack(alignment: .trailing) {
-                                Text("↑ 上传").font(.caption2).foregroundStyle(.secondary)
-                                Text(fmtRate(s.stats.networkUpload))
-                                    .font(.caption.weight(.medium).monospaced()).foregroundStyle(.purple)
-                            }
+                }
+                metricCard("网络", icon: "network", color: .purple, value: nil) {
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text("↓ 下载").font(.caption2).foregroundStyle(.secondary)
+                            Text(fmtRate(s.stats.networkDownload))
+                                .font(.body.weight(.semibold).monospaced()).foregroundStyle(.blue)
+                        }
+                        Spacer()
+                        Rectangle().fill(.white.opacity(0.06)).frame(width: 1, height: 32)
+                        Spacer()
+                        VStack(alignment: .trailing) {
+                            Text("↑ 上传").font(.caption2).foregroundStyle(.secondary)
+                            Text(fmtRate(s.stats.networkUpload))
+                                .font(.body.weight(.semibold).monospaced()).foregroundStyle(.purple)
                         }
                     }
                 }
