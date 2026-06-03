@@ -4,6 +4,7 @@ import SwiftUI
 
 struct MenuBarView: View {
     @EnvironmentObject var monitorService: SystemMonitorService
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         VStack(spacing: 0) {
@@ -282,13 +283,8 @@ struct MenuBarView: View {
     // MARK: - 动作
 
     private func openMainWindow() {
-        // 显示 Dock 图标
         NSApp.setActivationPolicy(.regular)
+        openWindow(id: "main")
         NSApp.activate(ignoringOtherApps: true)
-
-        // 确保窗口可见
-        if let window = NSApp.windows.first {
-            window.makeKeyAndOrderFront(nil)
-        }
     }
 }

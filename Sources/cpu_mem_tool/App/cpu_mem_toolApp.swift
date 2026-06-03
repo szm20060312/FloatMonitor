@@ -7,7 +7,7 @@ struct cpu_mem_toolApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
-        WindowGroup {
+        WindowGroup(id: "main") {
             ContentView()
                 .environmentObject(SystemMonitorService.shared)
         }
