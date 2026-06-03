@@ -41,22 +41,23 @@ struct MenuBarView: View {
     // MARK: - 标题栏
 
     private var headerView: some View {
-        HStack {
+        HStack(spacing: 6) {
             Image(systemName: "cpu")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.blue)
             Text("cpu_mem_tool")
                 .font(.caption.weight(.semibold))
             Spacer()
-            Button {
-                openMainWindow()
-            } label: {
-                Image(systemName: "macwindow")
-                    .font(.caption)
+            Button { openMainWindow() } label: {
+                Image(systemName: "macwindow").font(.caption)
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
-            .help("打开桌面窗口")
+            .buttonStyle(.plain).foregroundStyle(.secondary).help("打开桌面窗口")
+            if #available(macOS 26, *) {
+                Button { openSettings() } label: {
+                    Image(systemName: "gearshape").font(.caption)
+                }
+                .buttonStyle(.plain).foregroundStyle(.secondary).help("设置")
+            }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 6)
@@ -233,6 +234,14 @@ struct MenuBarView: View {
     }
 
     private func formatBytesPerSec(_ bytes: UInt64) -> String {
+        let unit = AppSettings.shared.networkUnit
+        if unit == .bitsPerSec {
+            let bps = Double(bytes) * 8
+            if bps >= 1_000_000_000 { return String(format: "%.1f Gbps", bps / 1_000_000_000) }
+            if bps >= 1_000_000 { return String(format: "%.1f Mbps", bps / 1_000_000) }
+            if bps >= 1_000 { return String(format: "%.0f Kbps", bps / 1_000) }
+            return "\(Int(bps)) bps"
+        }
         if bytes >= 1_000_000 { return String(format: "%.1f MB/s", Double(bytes)/1_000_000) }
         if bytes >= 1_000     { return String(format: "%.0f KB/s", Double(bytes)/1_000) }
         return "\(bytes) B/s"
@@ -243,6 +252,11 @@ struct MenuBarView: View {
     private func openMainWindow() {
         NSApp.setActivationPolicy(.regular)
         openWindow(id: "main")
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func openSettings() {
+        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 }

@@ -11,13 +11,11 @@ final class SystemMonitorService: ObservableObject, @unchecked Sendable {
 
     @Published var stats = SystemStats()
 
-    /// 当前刷新间隔（持久化到 UserDefaults）
-    @Published var refreshInterval: TimeInterval = {
-        let saved = UserDefaults.standard.double(forKey: "RefreshInterval")
-        return saved > 0 ? saved : 1.0
-    }() {
+    /// 当前刷新间隔（与 AppSettings 同步）
+    @Published var refreshInterval: TimeInterval = AppSettings.shared.refreshInterval {
         didSet {
-            UserDefaults.standard.set(refreshInterval, forKey: "RefreshInterval")
+            guard refreshInterval != oldValue else { return }
+            AppSettings.shared.refreshInterval = refreshInterval
             restartTimer()
         }
     }
@@ -27,9 +25,19 @@ final class SystemMonitorService: ObservableObject, @unchecked Sendable {
     // 用于计算差值的上一轮数据
     private var previousCPUTicks: [processor_cpu_load_info]?
     private var previousNetworkBytes: (received: UInt64, sent: UInt64)?
+    private var settingsObserver: Any?
 
     private init() {
         startMonitoring()
+        // 同步 AppSettings 变更
+        settingsObserver = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            let newVal = AppSettings.shared.refreshInterval
+            if self?.refreshInterval != newVal {
+                self?.refreshInterval = newVal
+            }
+        }
     }
 
     deinit {

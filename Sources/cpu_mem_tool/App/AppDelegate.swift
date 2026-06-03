@@ -55,6 +55,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setupStatusBar()
         setupPopover()
         observeStats()
+        observeSettings()
     }
 
     // MARK: - 状态栏（双行紧凑视图）
@@ -117,10 +118,61 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func updateStatusBar(cpu: Double, memoryUsed: UInt64, memoryTotal: UInt64) {
-        let memPercent = memoryTotal > 0
-            ? Int(Double(memoryUsed) / Double(memoryTotal) * 100)
-            : 0
-        statusView.cpuText = String(format: "%02d%%", Int(cpu))
-        statusView.memText = String(format: "%02d%%", memPercent)
+        let cpuInt = Int(cpu)
+        let memInt = memoryTotal > 0 ? Int(Double(memoryUsed) / Double(memoryTotal) * 100) : 0
+
+        switch AppSettings.shared.menuBarMode {
+        case .compact:
+            statusView.cpuText = String(format: "%02d%%", cpuInt)
+            statusView.memText = String(format: "%02d%%", memInt)
+
+        case .textOnly:
+            statusItem.button?.title = String(format: "CPU %02d%% MEM %02d%%", cpuInt, memInt)
+
+        case .iconText:
+            statusItem.button?.title = String(format: "C %02d%% M %02d%%", cpuInt, memInt)
+        }
+    }
+
+    // MARK: - 监听设置变更
+
+    private var currentMode: MenuBarMode = AppSettings.shared.menuBarMode
+
+    private func observeSettings() {
+        AppSettings.shared.$menuBarMode
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] mode in
+                guard let self, mode != self.currentMode else { return }
+                self.currentMode = mode
+                self.rebuildStatusBar(for: mode)
+            }
+            .store(in: &cancellables)
+    }
+
+    private func rebuildStatusBar(for mode: MenuBarMode) {
+        // 移除旧的 statusItem
+        if let item = statusItem {
+            NSStatusBar.system.removeStatusItem(item)
+        }
+
+        let length: CGFloat = mode == .compact ? 37 : NSStatusItem.variableLength
+        statusItem = NSStatusBar.system.statusItem(withLength: length)
+
+        if mode == .compact {
+            if let button = statusItem.button {
+                button.title = ""
+                button.target = self
+                button.action = #selector(togglePopover)
+                statusView = StatusBarTextView(frame: button.bounds)
+                statusView.autoresizingMask = [.width, .height]
+                button.addSubview(statusView)
+            }
+        } else {
+            if let button = statusItem.button {
+                button.font = NSFont.monospacedDigitSystemFont(ofSize: NSFont.smallSystemFontSize, weight: .medium)
+                button.target = self
+                button.action = #selector(togglePopover)
+            }
+        }
     }
 }

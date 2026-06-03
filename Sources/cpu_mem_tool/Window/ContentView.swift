@@ -116,6 +116,14 @@ private func fmtBytes(_ b: UInt64) -> String {
 }
 
 private func fmtRate(_ b: UInt64) -> String {
+    let unit = AppSettings.shared.networkUnit
+    if unit == .bitsPerSec {
+        let bps = Double(b) * 8
+        if bps >= 1_000_000_000 { return String(format: "%.1f Gbps", bps / 1_000_000_000) }
+        if bps >= 1_000_000 { return String(format: "%.1f Mbps", bps / 1_000_000) }
+        if bps >= 1_000 { return String(format: "%.0f Kbps", bps / 1_000) }
+        return "\(Int(bps)) bps"
+    }
     if b >= 1_000_000 { return String(format: "%.1f MB/s", Double(b) / 1_000_000) }
     if b >= 1_000 { return String(format: "%.0f KB/s", Double(b) / 1_000) }
     return "\(b) B/s"

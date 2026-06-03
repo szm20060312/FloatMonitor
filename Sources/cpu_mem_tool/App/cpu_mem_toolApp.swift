@@ -14,5 +14,10 @@ struct cpu_mem_toolApp: App {
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentMinSize)
         .defaultSize(width: 480, height: 560)
+
+        Settings {
+            SettingsView()
+        }
+        .windowResizability(.contentSize)
     }
 }
