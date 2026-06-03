@@ -28,6 +28,22 @@ struct MenuBarView: View {
             footerView
         }
         .frame(width: 260)
+        .background(
+            // 第 1 层：最通透的材质（液态玻璃基底）
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.ultraThinMaterial)
+        )
+        .background(
+            // 第 2 层：极淡白色叠加，模拟玻璃厚度感
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.white.opacity(0.04))
+        )
+        .overlay(
+            // 第 3 层：极细白色边框，模拟玻璃边缘折射
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(.white.opacity(0.12), lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
     }
 
     // MARK: - 标题栏
@@ -186,6 +202,7 @@ struct MenuBarView: View {
 
     private var sectionDivider: some View {
         Divider()
+            .opacity(0.3)
             .padding(.vertical, 8)
     }
 
@@ -213,7 +230,7 @@ struct MenuBarView: View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(.quaternary)
+                    .fill(.white.opacity(0.1))
                     .frame(height: 4)
                 Capsule()
                     .fill(
