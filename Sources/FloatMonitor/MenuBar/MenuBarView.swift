@@ -45,7 +45,7 @@ struct MenuBarView: View {
             Image(systemName: "cpu")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.blue)
-            Text("cpu_mem_tool")
+            Text("FloatMonitor")
                 .font(.caption.weight(.semibold))
             Spacer()
             Button { openMainWindow() } label: {

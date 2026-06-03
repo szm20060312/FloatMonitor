@@ -2,12 +2,12 @@
 set -e
 
 # ======================================
-#  cpu_mem_tool 打包脚本
+#  FloatMonitor 打包脚本
 #  将 SPM 编译产物组装为 .app 包
 # ======================================
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-APP_NAME="cpu_mem_tool"
+APP_NAME="FloatMonitor"
 BUILD_DIR="$PROJECT_DIR/.build"
 BIN_DIR="$BUILD_DIR/debug"
 APP_BUNDLE="$BUILD_DIR/$APP_NAME.app"
@@ -25,6 +25,7 @@ mkdir -p "$APP_BUNDLE/Contents/Resources"
 echo "=== 3/4 复制文件 ==="
 cp "$BIN_DIR/$APP_NAME" "$APP_BUNDLE/Contents/MacOS/"
 cp "$PROJECT_DIR/Resources/Info.plist" "$APP_BUNDLE/Contents/"
+cp "$PROJECT_DIR/Resources/AppIcon.icns" "$APP_BUNDLE/Contents/Resources/" 2>/dev/null || true
 
 # PkgInfo (APPL????)
 echo -n "APPL????" > "$APP_BUNDLE/Contents/PkgInfo"

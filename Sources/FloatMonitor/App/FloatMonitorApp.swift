@@ -3,7 +3,7 @@ import SwiftUI
 /// cpu_mem_tool — Mac 菜单栏系统监控应用
 /// macOS 26 "液态玻璃"设计风格
 @main
-struct cpu_mem_toolApp: App {
+struct FloatMonitorApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {

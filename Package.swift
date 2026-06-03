@@ -2,17 +2,17 @@
 import PackageDescription
 
 let package = Package(
-    name: "cpu_mem_tool",
+    name: "FloatMonitor",
     platforms: [
         .macOS("26.0")
     ],
     products: [
-        .executable(name: "cpu_mem_tool", targets: ["cpu_mem_tool"])
+        .executable(name: "FloatMonitor", targets: ["FloatMonitor"])
     ],
     targets: [
         .executableTarget(
-            name: "cpu_mem_tool",
-            path: "Sources/cpu_mem_tool",
+            name: "FloatMonitor",
+            path: "Sources/FloatMonitor",
             swiftSettings: [
                 .swiftLanguageMode(.v6)
             ]
