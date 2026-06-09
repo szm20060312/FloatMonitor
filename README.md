@@ -2,12 +2,6 @@
 
 Mac 菜单栏系统监控工具，实时显示 CPU / 内存占用，点击弹出详细面板查看 GPU、网络等完整数据。macOS 26 "液态玻璃"设计风格。
 
-<p align="center">
-  <img src="Assets/screenshot-menu.png" width="320" alt="菜单栏弹出面板" />
-  &nbsp;
-  <img src="Assets/screenshot-window.png" width="420" alt="桌面窗口模式" />
-</p>
-
 ## ✨ 功能
 
 ### 菜单栏实时监控
